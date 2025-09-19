@@ -8,12 +8,86 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  appleId   String?  @unique
-  name      String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                  String               @id @db.VarChar(24)
 
-  @@map("users")
+  name                String               @unique @db.VarChar(256)
+  nickname            String?              @db.VarChar(32)
+  birth               DateTime?            @db.Date
+  code                String               @db.VarChar(8)
+  device              String?              @db.VarChar(16)
+  email               String?              @db.VarChar(32)
+  phone               String?              @unique @db.VarChar(64)
+  profileUrl          String?              @db.VarChar(256)
+  pushId              String?              @db.VarChar(256)
+
+  webToken            String?              @unique @db.VarChar(52)
+  appToken            String?              @unique @db.VarChar(52)
+
+  createdAt           DateTime             @db.DateTime(3)
+  updatedAt           DateTime?            @db.DateTime(3)
+  lastAccess          DateTime?            @db.DateTime(3)
+  quitAt              DateTime?            @db.DateTime(3)
+
+  // Relations
+  identities          UserIdentity[]       @relation("userToUserIdentity")
+  runningRecords      RunningRecord[]      @relation("userToRunningRecord")
+
+  @@map("user")
+}
+
+model UserIdentity {
+  id              Int       @id @default(autoincrement()) /// 신원 고유 식별자
+  userId          String    @db.VarChar(24)               /// 연결된 유저 ID
+  providedId      String                                  /// 외부 제공자의 유저 ID
+  provider        Provider                                /// 인증 제공자 (kakao/apple/google/guest)
+  profileImageUrl String?                                 /// 프로필 이미지 URL
+
+  user            User     @relation("userToUserIdentity", fields: [userId], references: [id], onDelete: Cascade)
+
+  /// 제공자별 유저 ID 중복 방지
+  @@unique([provider, providedId])
+  @@map("user_identity")
+}
+
+
+model RunningRecord {
+  id                Int       @id @default(autoincrement()) @db.UnsignedInt
+  userId            String    @db.VarChar(24)              /// 사용자 ID
+
+  // 기본 러닝 데이터
+  distance          Float                                  /// 실제 뛴 거리 (km)
+  targetDistance    Float?                                 /// 목표 거리 (km)
+  duration          Int                                    /// 러닝 시간 (초)
+  pace              String?                                /// 평균 페이스 (mm:ss/km 형식)
+  calories          Int?                                   /// 소모 칼로리
+
+  // 시간 정보
+  startTime         DateTime                               /// 러닝 시작 시간
+  endTime           DateTime                               /// 러닝 종료 시간
+
+  // 부가 정보
+  averageHeartRate  Int?                                   /// 평균 심박수
+  steps             Int?                                   /// 걸음 수
+  routeData         Json?                                  /// GPS 경로 데이터 (위도/경도 배열)
+
+  // 목표 달성 정보
+  completionRate    Float                                  /// 목표 대비 달성률 (%)
+  isCompleted       Boolean   @default(false)              /// 목표 달성 여부
+
+  // 메타 데이터
+  createdAt         DateTime  @default(now()) @db.DateTime(3)
+  updatedAt         DateTime? @updatedAt @db.DateTime(3)
+
+  // Relations
+  user              User      @relation("userToRunningRecord", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("running_record")
+}
+
+/// 소셜 로그인 제공자 enum - 지원하는 소셜 로그인 서비스를 분류하는 열거형
+enum Provider {
+  kakao  /// 카카오 로그인
+  apple  /// 애플 로그인
+  google /// 구글 로그인
+  guest  /// 게스트 로그인
 }
