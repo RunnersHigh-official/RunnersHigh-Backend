@@ -23,7 +23,7 @@ model User {
   webToken            String?              @unique @db.VarChar(52)
   appToken            String?              @unique @db.VarChar(52)
 
-  createdAt           DateTime             @db.DateTime(3)
+  createdAt           DateTime             @default(now()) @db.DateTime(3)
   updatedAt           DateTime?            @db.DateTime(3)
   lastAccess          DateTime?            @db.DateTime(3)
   quitAt              DateTime?            @db.DateTime(3)
@@ -31,6 +31,8 @@ model User {
   // Relations
   identities          UserIdentity[]       @relation("userToUserIdentity")
   runningRecords      RunningRecord[]      @relation("userToRunningRecord")
+  sentRequests        Friend[]             @relation("SentRequests")
+  receivedRequests    Friend[]             @relation("ReceivedRequests")
 
   @@map("user")
 }
@@ -54,21 +56,29 @@ model RunningRecord {
   id                Int       @id @default(autoincrement()) @db.UnsignedInt
   userId            String    @db.VarChar(24)              /// 사용자 ID
 
+  // 기본 정보
+  title             String    @db.VarChar(255)             /// 러닝 제목
+  goalType          GoalType                               /// 목표 타입
+
   // 기본 러닝 데이터
   distance          Float                                  /// 실제 뛴 거리 (km)
   targetDistance    Float?                                 /// 목표 거리 (km)
   duration          Int                                    /// 러닝 시간 (초)
-  pace              String?                                /// 평균 페이스 (mm:ss/km 형식)
-  calories          Int?                                   /// 소모 칼로리
+  targetDuration    Int?                                   /// 목표 시간 (초)
+  pace              String                                 /// 평균 페이스 (mm:ss/km 형식)
+  calories          Int                                    /// 소모 칼로리
 
   // 시간 정보
   startTime         DateTime                               /// 러닝 시작 시간
   endTime           DateTime                               /// 러닝 종료 시간
 
-  // 부가 정보
-  averageHeartRate  Int?                                   /// 평균 심박수
-  steps             Int?                                   /// 걸음 수
-  routeData         Json?                                  /// GPS 경로 데이터 (위도/경도 배열)
+  // 심박수 & 케이던스
+  averageHeartRate  Int                                    /// 평균 심박수
+  maxHeartRate      Int                                    /// 최대 심박수
+  averageCadence    Int                                    /// 평균 케이던스 (분당 스텝 수)
+
+  // GPS & 경로 데이터
+  routeData         Json                                   /// GPS 경로 데이터 (위도/경도 배열)
 
   // 목표 달성 정보
   completionRate    Float                                  /// 목표 대비 달성률 (%)
@@ -82,6 +92,37 @@ model RunningRecord {
   user              User      @relation("userToRunningRecord", fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("running_record")
+}
+
+model Friend {
+  id          Int           @id @default(autoincrement()) @db.UnsignedInt
+  requesterId String        @db.VarChar(24)              /// 친구 요청한 사용자 ID
+  addresseeId String        @db.VarChar(24)              /// 친구 요청받은 사용자 ID
+  status      FriendStatus  @default(PENDING)            /// 친구 요청 상태
+  createdAt   DateTime      @default(now()) @db.DateTime(3)
+  acceptedAt  DateTime?     @db.DateTime(3)              /// 수락된 시간
+
+  // Relations
+  requester   User @relation("SentRequests", fields: [requesterId], references: [id], onDelete: Cascade)
+  addressee   User @relation("ReceivedRequests", fields: [addresseeId], references: [id], onDelete: Cascade)
+
+  /// 동일한 사용자 간 중복 요청 방지
+  @@unique([requesterId, addresseeId])
+  @@map("friend")
+}
+
+/// 친구 요청 상태 enum
+enum FriendStatus {
+  PENDING   /// 요청 대기 중
+  ACCEPTED  /// 수락됨 (친구 상태)
+  REJECTED  /// 거절됨
+  BLOCKED   /// 차단됨
+}
+
+/// 러닝 목표 타입 enum - 거리, 시간, 자유 러닝을 분류하는 열거형
+enum GoalType {
+  DISTANCE /// 거리 목표
+  TIME     /// 시간 목표
 }
 
 /// 소셜 로그인 제공자 enum - 지원하는 소셜 로그인 서비스를 분류하는 열거형

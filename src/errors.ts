@@ -3,13 +3,13 @@ import {
   Catch,
   ExceptionFilter,
   HttpException,
-  LoggerService,
 } from '@nestjs/common';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { AxiosError } from 'axios';
 import { Response } from 'express';
 import { invert } from 'lodash';
 import { KnownError, knownErrors } from './common/known-errors';
+import { LoggerService } from './logger/logger.service';
 
 export interface ErrorResponse {
   code: number;

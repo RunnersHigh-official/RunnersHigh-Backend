@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -33,16 +34,20 @@ export class RunningService {
 
       const runningRecord = await this.prisma.runningRecord.create({
         data: {
-          userId,
+          userId: userId,
+          title: dto.title,
+          goalType: dto.goalType,
           distance: dto.distance,
           targetDistance: dto.targetDistance,
           duration: dto.duration,
+          targetDuration: dto.targetDuration,
           pace: dto.pace,
           calories: dto.calories,
           startTime: new Date(dto.startTime),
           endTime: new Date(dto.endTime),
           averageHeartRate: dto.averageHeartRate,
-          steps: dto.steps,
+          maxHeartRate: dto.maxHeartRate,
+          averageCadence: dto.averageCadence,
           routeData: dto.routeData,
           completionRate,
           isCompleted,
@@ -78,24 +83,35 @@ export class RunningService {
           skip,
           take: limit,
           orderBy: { createdAt: 'desc' },
-          include: {
-            user: {
-              select: {
-                id: true,
-                name: true,
-                nickname: true,
-              },
-            },
-          },
         }),
         this.prisma.runningRecord.count({
           where: { userId },
         }),
       ]);
 
+      // iOS 모델에 맞게 데이터 변환 (목록용 - 가벼운 버전)
+      const transformedRecords = records.map((record) => ({
+        id: record.id,
+        title: record.title,
+        startTime: record.startTime,
+        endTime: record.endTime,
+        duration: record.duration,
+        totalDistance: record.distance,
+        averagePace: record.pace,
+        calories: record.calories,
+        // 목록에서는 경로 데이터 제외 (상세 조회에서만 제공)
+        averageHeartRate: record.averageHeartRate,
+        maxHeartRate: record.maxHeartRate,
+        averageCadence: record.averageCadence,
+        // 목록에서 유용한 추가 정보
+        goalType: record.goalType,
+        isCompleted: record.isCompleted,
+        completionRate: record.completionRate,
+      }));
+
       return {
         success: true,
-        data: records,
+        data: transformedRecords,
         pagination: {
           page,
           limit,
@@ -112,24 +128,38 @@ export class RunningService {
     try {
       const record = await this.prisma.runningRecord.findUnique({
         where: { id },
-        include: {
-          user: {
-            select: {
-              id: true,
-              name: true,
-              nickname: true,
-            },
-          },
-        },
       });
 
       if (!record) {
         throw new NotFoundException('Running record not found');
       }
 
+      // iOS 모델에 맞게 데이터 변환 (상세 정보 포함)
+      const transformedRecord = {
+        id: record.id,
+        title: record.title,
+        startTime: record.startTime,
+        endTime: record.endTime,
+        duration: record.duration,
+        totalDistance: record.distance,
+        averagePace: record.pace,
+        calories: record.calories,
+        routePath: Array.isArray(record.routeData) ? record.routeData : [],
+        averageHeartRate: record.averageHeartRate,
+        maxHeartRate: record.maxHeartRate,
+        averageCadence: record.averageCadence,
+        // 추가 상세 정보
+        goalType: record.goalType,
+        targetDistance: record.targetDistance,
+        targetDuration: record.targetDuration,
+        completionRate: record.completionRate,
+        isCompleted: record.isCompleted,
+        createdAt: record.createdAt,
+      };
+
       return {
         success: true,
-        data: record,
+        data: transformedRecord,
       };
     } catch (error) {
       if (error instanceof NotFoundException) {
@@ -181,6 +211,41 @@ export class RunningService {
       };
     } catch (error) {
       throw new BadRequestException('Failed to fetch running stats');
+    }
+  }
+
+  async deleteRunningRecord(userId: string, recordId: number) {
+    try {
+      // 먼저 해당 기록이 존재하고 사용자 소유인지 확인
+      const record = await this.prisma.runningRecord.findUnique({
+        where: { id: recordId },
+      });
+
+      if (!record) {
+        throw new NotFoundException('Running record not found');
+      }
+
+      if (record.userId !== userId) {
+        throw new ForbiddenException('본인의 기록만 삭제할 수 있습니다.');
+      }
+
+      // 기록 삭제
+      await this.prisma.runningRecord.delete({
+        where: { id: recordId, userId: userId },
+      });
+
+      return {
+        success: true,
+        message: '러닝 기록이 삭제되었습니다.',
+      };
+    } catch (error) {
+      if (
+        error instanceof NotFoundException ||
+        error instanceof ForbiddenException
+      ) {
+        throw error;
+      }
+      throw new BadRequestException('Failed to delete running record');
     }
   }
 }

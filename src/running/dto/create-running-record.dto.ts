@@ -1,10 +1,37 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsNumber, IsOptional, IsDateString, IsArray, IsBoolean } from 'class-validator';
+import { GoalType } from '@prisma/client';
+import {
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+} from 'class-validator';
 
 export class CreateRunningRecordDto {
   @ApiProperty({
+    description: '러닝 제목',
+    example: '아침 조깅',
+  })
+  @IsNotEmpty()
+  @IsString()
+  title: string;
+
+  @ApiProperty({
+    description: '목표 타입',
+    enum: GoalType,
+    example: GoalType.DISTANCE,
+  })
+  @IsNotEmpty()
+  @IsEnum(GoalType)
+  goalType: GoalType;
+
+  @ApiProperty({
     description: '실제 뛴 거리 (km)',
-    example: 0.02,
+    example: 5.2,
   })
   @IsNotEmpty()
   @IsNumber()
@@ -21,28 +48,36 @@ export class CreateRunningRecordDto {
 
   @ApiProperty({
     description: '러닝 시간 (초)',
-    example: 8,
+    example: 1872,
   })
   @IsNotEmpty()
   @IsNumber()
   duration: number;
 
   @ApiProperty({
-    description: '평균 페이스 (mm:ss/km 형식)',
-    example: '5:32',
-    required: false,
-  })
-  @IsOptional()
-  pace?: string;
-
-  @ApiProperty({
-    description: '소모 칼로리',
-    example: 15,
+    description: '목표 시간 (초)',
+    example: 1800,
     required: false,
   })
   @IsOptional()
   @IsNumber()
-  calories?: number;
+  targetDuration?: number;
+
+  @ApiProperty({
+    description: '평균 페이스 (mm:ss/km 형식)',
+    example: '5:32',
+  })
+  @IsNotEmpty()
+  @IsString()
+  pace: string;
+
+  @ApiProperty({
+    description: '소모 칼로리',
+    example: 250,
+  })
+  @IsNotEmpty()
+  @IsNumber()
+  calories: number;
 
   @ApiProperty({
     description: '러닝 시작 시간',
@@ -63,32 +98,45 @@ export class CreateRunningRecordDto {
   @ApiProperty({
     description: '평균 심박수',
     example: 120,
-    required: false,
   })
-  @IsOptional()
+  @IsNotEmpty()
   @IsNumber()
-  averageHeartRate?: number;
+  averageHeartRate: number;
 
   @ApiProperty({
-    description: '걸음 수',
-    example: 30,
-    required: false,
+    description: '최대 심박수',
+    example: 150,
   })
-  @IsOptional()
+  @IsNotEmpty()
   @IsNumber()
-  steps?: number;
+  maxHeartRate: number;
+
+  @ApiProperty({
+    description: '평균 케이던스 (분당 스텝 수)',
+    example: 180,
+  })
+  @IsNotEmpty()
+  @IsNumber()
+  averageCadence: number;
 
   @ApiProperty({
     description: 'GPS 경로 데이터 (위도/경도 배열)',
     example: [
-      { latitude: 37.5665, longitude: 126.9780, timestamp: '2025-01-19T10:00:00Z' },
-      { latitude: 37.5666, longitude: 126.9781, timestamp: '2025-01-19T10:00:04Z' }
+      {
+        latitude: 37.5665,
+        longitude: 126.978,
+        timestamp: '2025-01-19T10:00:00Z',
+      },
+      {
+        latitude: 37.5666,
+        longitude: 126.9781,
+        timestamp: '2025-01-19T10:00:04Z',
+      },
     ],
-    required: false,
   })
-  @IsOptional()
+  @IsNotEmpty()
   @IsArray()
-  routeData?: Array<{
+  routeData: Array<{
     latitude: number;
     longitude: number;
     timestamp: string;
@@ -97,9 +145,8 @@ export class CreateRunningRecordDto {
   @ApiProperty({
     description: '목표 달성 여부',
     example: false,
-    required: false,
   })
-  @IsOptional()
+  @IsNotEmpty()
   @IsBoolean()
-  isCompleted?: boolean;
+  isCompleted: boolean;
 }

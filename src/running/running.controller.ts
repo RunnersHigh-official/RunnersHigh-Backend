@@ -1,8 +1,19 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  ParseIntPipe,
+  Put,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -13,15 +24,14 @@ import { CreateRunningRecordDto } from './dto/create-running-record.dto';
 import { RunningService } from './running.service';
 
 @ApiTags('Running')
+@ApiBearerAuth('access_token')
 @Controller('running')
 export class RunningController {
   constructor(private readonly runningService: RunningService) {}
 
   @UseGuards(AppLevelGuard)
-  @Post('record/:userId')
-  @ApiBearerAuth('access_token')
+  @Put('record')
   @ApiOperation({ summary: '러닝 기록 저장' })
-  @ApiParam({ name: 'userId', description: '사용자 ID', example: 1 })
   @ApiResponse({
     status: 201,
     description: '러닝 기록이 성공적으로 저장되었습니다.',
@@ -55,110 +65,135 @@ export class RunningController {
     return this.runningService.createRunningRecord(user.id, dto);
   }
 
-  // @Get('records/:userId')
-  // @ApiOperation({ summary: '사용자의 러닝 기록 목록 조회' })
-  // @ApiParam({ name: 'userId', description: '사용자 ID', example: 1 })
-  // @ApiQuery({ name: 'page', description: '페이지 번호', example: 1, required: false })
-  // @ApiQuery({ name: 'limit', description: '페이지당 항목 수', example: 10, required: false })
-  // @ApiResponse({
-  //   status: 200,
-  //   description: '러닝 기록 목록 조회 성공',
-  //   schema: {
-  //     example: {
-  //       success: true,
-  //       data: [
-  //         {
-  //           id: 1,
-  //           distance: 0.02,
-  //           targetDistance: 3.0,
-  //           duration: 8,
-  //           pace: '5:32',
-  //           completionRate: 0.67,
-  //           isCompleted: false,
-  //           createdAt: '2025-01-19T10:00:10.000Z',
-  //         },
-  //       ],
-  //       pagination: {
-  //         page: 1,
-  //         limit: 10,
-  //         total: 1,
-  //         totalPages: 1,
-  //       },
-  //     },
-  //   },
-  // })
-  // async getUserRunningRecords(
-  //   @Param('userId', ParseIntPipe) userId: number,
-  //   @Query('page') page = 1,
-  //   @Query('limit') limit = 10,
-  // ) {
-  //   return this.runningService.getUserRunningRecords(userId, Number(page), Number(limit));
-  // }
+  @UseGuards(AppLevelGuard)
+  @Get('records')
+  @ApiOperation({ summary: '사용자의 러닝 기록 목록 조회' })
+  @ApiQuery({
+    name: 'page',
+    description: '페이지 번호',
+    example: 1,
+    required: false,
+  })
+  @ApiQuery({
+    name: 'limit',
+    description: '페이지당 항목 수',
+    example: 10,
+    required: false,
+  })
+  @ApiResponse({
+    status: 200,
+    description: '러닝 기록 목록 조회 성공',
+    schema: {
+      example: {
+        success: true,
+        data: [
+          {
+            id: 1,
+            title: '아침 조깅',
+            startTime: '2025-01-19T10:00:00.000Z',
+            endTime: '2025-01-19T10:31:12.000Z',
+            duration: 1872,
+            totalDistance: 5.2,
+            averagePace: '6:00',
+            calories: 250,
+            averageHeartRate: 120,
+            maxHeartRate: 150,
+            averageCadence: 180,
+            goalType: 'DISTANCE',
+            isCompleted: true,
+            completionRate: 104.0,
+          },
+        ],
+        pagination: {
+          page: 1,
+          limit: 10,
+          total: 1,
+          totalPages: 1,
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 400, description: '잘못된 요청' })
+  async getUserRunningRecords(
+    @CurrentUser() user: User,
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+  ) {
+    return this.runningService.getUserRunningRecords(
+      user.id,
+      Number(page),
+      Number(limit),
+    );
+  }
 
-  // @Get('record/:id')
-  // @ApiOperation({ summary: '특정 러닝 기록 상세 조회' })
-  // @ApiParam({ name: 'id', description: '러닝 기록 ID', example: 1 })
-  // @ApiResponse({
-  //   status: 200,
-  //   description: '러닝 기록 상세 조회 성공',
-  //   schema: {
-  //     example: {
-  //       success: true,
-  //       data: {
-  //         id: 1,
-  //         userId: 1,
-  //         distance: 0.02,
-  //         targetDistance: 3.0,
-  //         duration: 8,
-  //         pace: '5:32',
-  //         calories: 15,
-  //         startTime: '2025-01-19T10:00:00.000Z',
-  //         endTime: '2025-01-19T10:00:08.000Z',
-  //         averageHeartRate: 120,
-  //         steps: 30,
-  //         routeData: [
-  //           { latitude: 37.5665, longitude: 126.9780, timestamp: '2025-01-19T10:00:00Z' }
-  //         ],
-  //         completionRate: 0.67,
-  //         isCompleted: false,
-  //         createdAt: '2025-01-19T10:00:10.000Z',
-  //         user: {
-  //           id: 1,
-  //           name: 'User Name',
-  //           nickname: 'Nickname',
-  //         },
-  //       },
-  //     },
-  //   },
-  // })
-  // @ApiResponse({ status: 404, description: '러닝 기록을 찾을 수 없습니다.' })
-  // async getRunningRecordById(@Param('id', ParseIntPipe) id: number) {
-  //   return this.runningService.getRunningRecordById(id);
-  // }
+  @UseGuards(AppLevelGuard)
+  @Get('record/:id')
+  @ApiOperation({ summary: '특정 러닝 기록 상세 조회' })
+  @ApiParam({ name: 'id', description: '러닝 기록 ID', example: 1 })
+  @ApiResponse({
+    status: 200,
+    description: '러닝 기록 상세 조회 성공',
+    schema: {
+      example: {
+        success: true,
+        data: {
+          id: 1,
+          title: '아침 조깅',
+          goalType: 'DISTANCE',
+          startTime: '2025-01-19T10:00:00.000Z',
+          endTime: '2025-01-19T10:31:12.000Z',
+          duration: 1872,
+          totalDistance: 5.2,
+          targetDistance: 5.0,
+          averagePace: '6:00',
+          calories: 250,
+          routePath: [
+            {
+              latitude: 37.5665,
+              longitude: 126.978,
+              timestamp: '2025-01-19T10:00:00.000Z',
+            },
+            {
+              latitude: 37.5666,
+              longitude: 126.9781,
+              timestamp: '2025-01-19T10:00:04.000Z',
+            },
+          ],
+          averageHeartRate: 120,
+          maxHeartRate: 150,
+          averageCadence: 180,
+          completionRate: 104.0,
+          isCompleted: true,
+          createdAt: '2025-01-19T10:00:10.000Z',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 404, description: '러닝 기록을 찾을 수 없습니다.' })
+  async getRunningRecordById(@Param('id', ParseIntPipe) id: number) {
+    return this.runningService.getRunningRecordById(id);
+  }
 
-  // @Get('stats/:userId')
-  // @ApiOperation({ summary: '사용자의 러닝 통계 조회' })
-  // @ApiParam({ name: 'userId', description: '사용자 ID', example: 1 })
-  // @ApiResponse({
-  //   status: 200,
-  //   description: '러닝 통계 조회 성공',
-  //   schema: {
-  //     example: {
-  //       success: true,
-  //       data: {
-  //         totalRuns: 10,
-  //         totalDistance: 25.5,
-  //         totalDuration: 7200,
-  //         totalCalories: 1500,
-  //         averageDistance: 2.55,
-  //         averageCompletionRate: 85.5,
-  //         completedRuns: 8,
-  //         completionRate: 80.0,
-  //       },
-  //     },
-  //   },
-  // })
-  // async getUserRunningStats(@Param('userId', ParseIntPipe) userId: number) {
-  //   return this.runningService.getUserRunningStats(userId);
-  // }
+  @UseGuards(AppLevelGuard)
+  @Delete('record/:id')
+  @ApiOperation({ summary: '러닝 기록 삭제' })
+  @ApiParam({ name: 'id', description: '러닝 기록 ID', example: 1 })
+  @ApiResponse({
+    status: 200,
+    description: '러닝 기록이 성공적으로 삭제되었습니다.',
+    schema: {
+      example: {
+        success: true,
+        message: '러닝 기록이 삭제되었습니다.',
+      },
+    },
+  })
+  @ApiResponse({ status: 403, description: '본인의 기록만 삭제할 수 있습니다.' })
+  @ApiResponse({ status: 404, description: '러닝 기록을 찾을 수 없습니다.' })
+  async deleteRunningRecord(
+    @CurrentUser() user: User,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.runningService.deleteRunningRecord(user.id, id);
+  }
 }
