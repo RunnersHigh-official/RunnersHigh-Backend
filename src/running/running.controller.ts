@@ -147,7 +147,7 @@ export class RunningController {
           targetDistance: 5.0,
           averagePace: '6:00',
           calories: 250,
-          routePath: [
+          routeData: [
             {
               latitude: 37.5665,
               longitude: 126.978,
@@ -188,7 +188,10 @@ export class RunningController {
       },
     },
   })
-  @ApiResponse({ status: 403, description: '본인의 기록만 삭제할 수 있습니다.' })
+  @ApiResponse({
+    status: 403,
+    description: '본인의 기록만 삭제할 수 있습니다.',
+  })
   @ApiResponse({ status: 404, description: '러닝 기록을 찾을 수 없습니다.' })
   async deleteRunningRecord(
     @CurrentUser() user: User,

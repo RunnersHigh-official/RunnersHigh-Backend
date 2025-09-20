@@ -89,7 +89,7 @@ export class RunningService {
         }),
       ]);
 
-      // iOS 모델에 맞게 데이터 변환 (목록용 - 가벼운 버전)
+      // iOS 모델에 맞게 데이터 변환 (목록용)
       const transformedRecords = records.map((record) => ({
         id: record.id,
         title: record.title,
@@ -99,7 +99,7 @@ export class RunningService {
         totalDistance: record.distance,
         averagePace: record.pace,
         calories: record.calories,
-        // 목록에서는 경로 데이터 제외 (상세 조회에서만 제공)
+        routeData: Array.isArray(record.routeData) ? record.routeData : [],
         averageHeartRate: record.averageHeartRate,
         maxHeartRate: record.maxHeartRate,
         averageCadence: record.averageCadence,
@@ -144,7 +144,7 @@ export class RunningService {
         totalDistance: record.distance,
         averagePace: record.pace,
         calories: record.calories,
-        routePath: Array.isArray(record.routeData) ? record.routeData : [],
+        routeData: Array.isArray(record.routeData) ? record.routeData : [],
         averageHeartRate: record.averageHeartRate,
         maxHeartRate: record.maxHeartRate,
         averageCadence: record.averageCadence,
