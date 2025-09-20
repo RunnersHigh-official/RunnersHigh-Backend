@@ -6,12 +6,21 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRunningRecordDto } from './dto/create-running-record.dto';
+import {
+  CreateRunningRecordResponseDto,
+  DeleteRunningRecordResponseDto,
+  RunningRecordDetailResponseDto,
+  RunningRecordListResponseDto,
+} from './dto/running-record-response.dto';
 
 @Injectable()
 export class RunningService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async createRunningRecord(userId: string, dto: CreateRunningRecordDto) {
+  async createRunningRecord(
+    userId: string,
+    dto: CreateRunningRecordDto,
+  ): Promise<CreateRunningRecordResponseDto> {
     try {
       // 사용자 존재 확인
       const user = await this.prisma.user.findUnique({
@@ -73,7 +82,11 @@ export class RunningService {
     }
   }
 
-  async getUserRunningRecords(userId: string, page = 1, limit = 10) {
+  async getUserRunningRecords(
+    userId: string,
+    page = 1,
+    limit = 10,
+  ): Promise<RunningRecordListResponseDto> {
     try {
       const skip = (page - 1) * limit;
 
@@ -124,7 +137,9 @@ export class RunningService {
     }
   }
 
-  async getRunningRecordById(id: number) {
+  async getRunningRecordById(
+    id: number,
+  ): Promise<RunningRecordDetailResponseDto> {
     try {
       const record = await this.prisma.runningRecord.findUnique({
         where: { id },
@@ -214,7 +229,10 @@ export class RunningService {
     }
   }
 
-  async deleteRunningRecord(userId: string, recordId: number) {
+  async deleteRunningRecord(
+    userId: string,
+    recordId: number,
+  ): Promise<DeleteRunningRecordResponseDto> {
     try {
       // 먼저 해당 기록이 존재하고 사용자 소유인지 확인
       const record = await this.prisma.runningRecord.findUnique({
